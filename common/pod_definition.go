@@ -3,6 +3,8 @@ package common
 type Container struct {
 	Image  string `json:"image"`
 	Flavor string `json:"flavor"`
+	Name   string `json:"name"`
+	Mount  string `json:"mount"`
 }
 
 type Ssh struct {

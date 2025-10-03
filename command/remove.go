@@ -2,13 +2,13 @@ package command
 
 import "github.com/oo-developer/pod/common"
 
-type buildCommand struct {
+type removeCommand struct {
 	system    common.SystemService
 	config    common.ConfigService
 	container common.ContainerService
 }
 
-func (b *buildCommand) Execute(strings []string) error {
-	b.container.BuildDockerFile()
+func (r *removeCommand) Execute(strings []string) error {
+	r.container.Remove()
 	return nil
 }

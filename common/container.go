@@ -5,4 +5,7 @@ type ContainerService interface {
 	GetDefaultPod() *PodDefinition
 	BuildDockerFile()
 	RunContainer()
+	Start()
+	Stop()
+	Remove()
 }

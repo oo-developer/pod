@@ -61,7 +61,7 @@ func (c *config) load() {
 }
 
 func (c *config) save() {
-	jsonData, err := json.Marshal(c)
+	jsonData, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
 		os.Exit(1)
@@ -88,6 +88,26 @@ func (c *config) BasePath() string {
 
 func (c *config) LibraryPath() string {
 	return path.Join(c.BasePath(), "library")
+}
+
+func (c *config) RecipesPath() string {
+	return path.Join(c.LibraryPath(), "recipes", c.system.Architecture())
+}
+
+func (c *config) ListRecipes() {
+	items, _ := os.ReadDir(c.RecipesPath())
+	for _, item := range items {
+		if !item.IsDir() && strings.HasSuffix(item.Name(), ".rcp") {
+			name := strings.TrimSuffix(item.Name(), ".rcp")
+			name = strings.TrimPrefix(name, "root_")
+			name = strings.TrimPrefix(name, "user_")
+			if strings.HasPrefix(item.Name(), "root_") {
+				fmt.Printf("[root] %s\n", name)
+			} else if strings.HasPrefix(item.Name(), "user_") {
+				fmt.Printf("[user] %s\n", name)
+			}
+		}
+	}
 }
 
 func (c *config) PodsPath() string {

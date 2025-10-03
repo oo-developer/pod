@@ -5,7 +5,7 @@ import (
 )
 
 type initCommand struct {
-	sys       common.SystemService
+	system    common.SystemService
 	config    common.ConfigService
 	container common.ContainerService
 }

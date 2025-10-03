@@ -31,6 +31,24 @@ type container struct {
 	system common.SystemService
 }
 
+func (c *container) Remove() {
+	wd, _ := os.Getwd()
+	c.system.Execute("podman", "rm", "-f", c.config.PodImageName(wd))
+	fmt.Println("[OK] Podman image removed")
+}
+
+func (c *container) Stop() {
+	wd, _ := os.Getwd()
+	c.system.Execute("podman", "stop", c.config.PodImageName(wd))
+	fmt.Println("[OK] Podman image stopped")
+}
+
+func (c *container) Start() {
+	wd, _ := os.Getwd()
+	c.system.Execute("podman", "start", c.config.PodImageName(wd))
+	fmt.Println("[OK] Podman image started")
+}
+
 func (c *container) BuildDockerFile() {
 	wd, _ := os.Getwd()
 	podDefinition := c.GetDefaultPod()
@@ -95,7 +113,17 @@ func (c *container) buildDockerfileDebian(podDefinition *common.PodDefinition) s
 	docker += fmt.Sprintf("RUN echo 'eval \"$(ssh-agent -s)\"' >> /home/%s/.bashrc\n", c.system.User())
 	docker += fmt.Sprintf("RUN echo 'ssh-add' >> /home/%s/.bashrc\n", c.system.User())
 	docker += fmt.Sprintf("RUN chown -R %s:%s /home/%s/.ssh\n", c.system.User(), c.system.User(), c.system.User())
+	for _, recipeName := range podDefinition.Recipes {
+		if recipe, ok := c.getUserRecipe(recipeName, "root"); ok {
+			docker += recipe
+		}
+	}
 	docker += fmt.Sprintf("USER %s\n", c.system.User())
+	for _, recipeName := range podDefinition.Recipes {
+		if recipe, ok := c.getUserRecipe(recipeName, "user"); ok {
+			docker += recipe
+		}
+	}
 	docker += "\n"
 	docker += "USER root\n"
 	docker += "ENV container=podman\n"
@@ -171,12 +199,19 @@ func (c *container) GetDefaultPod() *common.PodDefinition {
 		fmt.Printf("[ERROR] %v\n", err)
 		os.Exit(1)
 	}
+	if podDef.Container.Name == "" {
+		podDef.Container.Name = "pod"
+	}
+	if podDef.Container.Mount == "" {
+		podDef.Container.Mount = "data"
+	}
 	return podDef
 }
 
 func (c *container) RunContainer() {
 	fmt.Println("[OK] Running container...")
 	wd, _ := os.Getwd()
+	defaultPod := c.GetDefaultPod()
 	imageName := c.config.PodImageName(wd)
 	config := c.loadContainerConfig()
 	args := []string{"run"}
@@ -188,7 +223,7 @@ func (c *container) RunContainer() {
 	args = append(args, "--privileged")
 	args = append(args, "--systemd=always")
 	args = append(args, "--volume")
-	args = append(args, fmt.Sprintf("%s:/home/%s/project:U", wd, c.system.User()))
+	args = append(args, fmt.Sprintf("%s:/home/%s/%s:U", wd, c.system.User(), defaultPod.Container.Mount))
 	args = append(args, "--env")
 	args = append(args, fmt.Sprintf("DISPLAY=%s", os.Getenv("DISPLAY")))
 	args = append(args, "--tmpfs")
@@ -200,9 +235,7 @@ func (c *container) RunContainer() {
 	args = append(args, "--volume")
 	args = append(args, "/sys/fs/cgroup:/sys/fs/cgroup:ro")
 	args = append(args, "--hostname")
-	args = append(args, "pod")
-	args = append(args, "--userns")
-	args = append(args, "keep-id")
+	args = append(args, defaultPod.Container.Name)
 	args = append(args, imageName)
 	c.system.Execute("podman", args...)
 	c.system.Execute("podman", "exec", "-it", imageName, "sudo", "systemctl", "start", "ssh")
@@ -250,4 +283,25 @@ func (c *container) saveContainerConfig(config *Config) {
 		fmt.Printf("[ERROR] %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func (c *container) getUserRecipe(recipeName, user string) (string, bool) {
+	items, _ := os.ReadDir(c.config.RecipesPath())
+	for _, item := range items {
+		if !item.IsDir() && strings.HasSuffix(item.Name(), ".rcp") {
+			name := strings.TrimSuffix(item.Name(), ".rcp")
+			shortName := strings.TrimPrefix(name, "root_")
+			shortName = strings.TrimPrefix(shortName, "user_")
+			if shortName == recipeName && strings.HasPrefix(name, user) {
+				data, err := os.ReadFile(path.Join(c.config.RecipesPath(), item.Name()))
+				if err != nil {
+					fmt.Printf("[WARNING] Loading recipe '%s': %v\n", recipeName, err)
+					os.Exit(1)
+				}
+				return string(data), true
+			}
+		}
+	}
+	fmt.Printf("[WARNING] Recipe '%s' not found\n", recipeName)
+	return "", false
 }
