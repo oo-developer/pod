@@ -8,4 +8,6 @@ type ContainerService interface {
 	Start()
 	Stop()
 	Remove()
+	Shell()
+	Status()
 }

@@ -56,6 +56,11 @@ func Init(system common.SystemService, config common.ConfigService, container co
 		config:    config,
 		container: container,
 	}
+	c.commands["status"] = &statusCommand{
+		system:    system,
+		config:    config,
+		container: container,
+	}
 	return c
 }
 

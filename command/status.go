@@ -2,13 +2,13 @@ package command
 
 import "github.com/oo-developer/pod/common"
 
-type shellCommand struct {
+type statusCommand struct {
 	system    common.SystemService
 	config    common.ConfigService
 	container common.ContainerService
 }
 
-func (s *shellCommand) Execute(strings []string) error {
-	s.container.Shell()
+func (s *statusCommand) Execute(strings []string) error {
+	s.container.Status()
 	return nil
 }

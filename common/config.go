@@ -3,8 +3,8 @@ package common
 type ConfigService interface {
 	BasePath() string
 	LibraryPath() string
-	RecipesPath() string
-	ListRecipes()
+	RecipesPath(flavor string) string
+	ListRecipes(flavor string)
 	PodsPath() string
 	PodPath(folder string) string
 	PodImageName(folder string) string

@@ -12,10 +12,10 @@ import (
 
 func main() {
 	sys := system.Init()
-	//fmt.Printf("[OK] User         : %s\n", sys.User())
-	//fmt.Printf("[OK] HomeDir      : %s\n", sys.HomeDir())
-	//fmt.Printf("[OK] Display      : %s\n", sys.Display())
-	//fmt.Printf("[OK] Architecture : %s\n", sys.Architecture())
+	if sys.User() == "root" {
+		fmt.Println("[ERROR] Pod can not run as root!")
+		os.Exit(1)
+	}
 	conf := config.Init(sys)
 	cont := container.Init(conf, sys)
 	commands := command.Init(sys, conf, cont)

@@ -9,13 +9,14 @@ type recipesCommand struct {
 }
 
 func (l *recipesCommand) Execute(strings []string) error {
+	defaultPod := l.container.GetDefaultPod()
 	if len(strings) == 0 {
-		l.config.ListRecipes()
+		l.config.ListRecipes(defaultPod.Container.Flavor)
 		return nil
 	}
 	switch strings[0] {
 	case "list":
-		l.config.ListRecipes()
+		l.config.ListRecipes(defaultPod.Container.Flavor)
 		return nil
 	case "update":
 		break

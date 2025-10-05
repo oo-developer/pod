@@ -1,7 +1,9 @@
 {
     "container": {
         "image": "ubuntu:24.04",
-        "flavor": "debian"
+        "flavor": "debian",
+        "name": "pod",
+        "mount": "project"
     },
     "ssh": {
         "privateKeyPath": "%privateKeyPath",
@@ -11,6 +13,11 @@
         "git"
     ],
     "recipes": [
-        "vscode"
+        "vscode",
+        "goland",
+        "vivaldi",
+        "go",
+        "rust",
+        "nix"
     ]
 }

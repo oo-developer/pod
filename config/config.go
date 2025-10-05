@@ -41,7 +41,7 @@ func (c *config) load() {
 		fmt.Printf("[ERROR] %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("[OK] Config loaded from '%s'\n", c.ConfigPath())
+	//fmt.Printf("[OK] Config loaded from '%s'\n", c.ConfigPath())
 	if !exists {
 		wd, _ := os.Getwd()
 		defer os.Chdir(wd)
@@ -90,12 +90,12 @@ func (c *config) LibraryPath() string {
 	return path.Join(c.BasePath(), "library")
 }
 
-func (c *config) RecipesPath() string {
-	return path.Join(c.LibraryPath(), "recipes", c.system.Architecture())
+func (c *config) RecipesPath(flavor string) string {
+	return path.Join(c.LibraryPath(), "recipes", flavor, c.system.Architecture())
 }
 
-func (c *config) ListRecipes() {
-	items, _ := os.ReadDir(c.RecipesPath())
+func (c *config) ListRecipes(flavor string) {
+	items, _ := os.ReadDir(c.RecipesPath(flavor))
 	for _, item := range items {
 		if !item.IsDir() && strings.HasSuffix(item.Name(), ".rcp") {
 			name := strings.TrimSuffix(item.Name(), ".rcp")
