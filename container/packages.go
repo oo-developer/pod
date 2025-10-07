@@ -16,6 +16,7 @@ var packages = []string{
 	"ca-certificates",
 	"gnupg",
 	"bzip2",
+	"iputils-ping",
 	"libpci3",
 	//"libasound2",
 	"libatk1.0-0",
@@ -48,6 +49,8 @@ var packages = []string{
 	"xauth",
 	"net-tools",
 	"xz-utils",
+	"socat",
+	"uuid-runtime",
 }
 
 func getDefaultPackages() string {

@@ -115,7 +115,6 @@ func (c *config) PodsPath() string {
 }
 
 func (c *config) PodPath(folder string) string {
-
 	return path.Join(c.PodsPath(), c.PodImageName(folder))
 }
 

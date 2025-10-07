@@ -34,6 +34,20 @@ type container struct {
 	system common.SystemService
 }
 
+func (c *container) BuildShellScript() {
+	wd, _ := os.Getwd()
+	podConfig := c.loadContainerConfig()
+	fileName := path.Join(wd, "pod-shell")
+	script := "#!/bin/bash\n"
+	script += fmt.Sprintf("ssh -p %d -X %s@localhost\n", podConfig.Port, c.system.User())
+	err := os.WriteFile(fileName, []byte(script), 0770)
+	if err != nil {
+		fmt.Printf("[ERROR] Could not create shell script: %v", err)
+		os.Exit(1)
+	}
+	fmt.Printf("[OK] Created shell script: %s\n", "pod-shell")
+}
+
 func (c *container) Status() {
 	wd, _ := os.Getwd()
 	podConfig := c.loadContainerConfig()
@@ -58,10 +72,8 @@ func (c *container) isPodRunning() bool {
 func (c *container) Remove() {
 	wd, _ := os.Getwd()
 	c.system.Execute("podman", "rm", "-f", c.config.PodImageName(wd))
+	c.system.Execute("rm", "-rf", c.config.PodPath(wd))
 	fmt.Println("[OK] Pod container removed")
-	config := c.loadContainerConfig()
-	config.FirstStart = false
-	c.saveContainerConfig(config)
 }
 
 func (c *container) RemoveImage() {
@@ -125,6 +137,7 @@ func (c *container) buildImage() {
 		fmt.Printf("[ERROR] %v\n", err)
 		os.Exit(1)
 	}
+	//c.system.Execute("podman", "build", "-t", imageName, ".")
 	c.system.Execute("podman", "build", "-t", imageName, ".")
 	fmt.Printf("[OK] Podman image '%s' built\n", imageName)
 }
@@ -253,11 +266,21 @@ func (c *container) GetDefaultPod() *common.PodDefinition {
 }
 
 func (c *container) RunContainer() {
+	config := c.loadContainerConfig()
+	if config.FirstStart {
+		fmt.Println("[OK] Container is already running.")
+		fmt.Println("[OK] Use 'pod status' to see if it is started.")
+		os.Exit(0)
+	}
+
 	fmt.Println("[OK] Running container...")
 	wd, _ := os.Getwd()
 	defaultPod := c.GetDefaultPod()
 	imageName := c.config.PodImageName(wd)
-	config := c.loadContainerConfig()
+
+	mountDir := path.Join(wd, defaultPod.Container.Mount)
+	c.system.Execute("mkdir", "-p", mountDir)
+	fmt.Printf("[OK] Mount point created: %s\n", mountDir)
 	args := []string{"run"}
 	args = append(args, "--runtime")
 	args = append(args, "crun")
@@ -290,7 +313,7 @@ func (c *container) RunContainer() {
 	args = append(args, "--user")
 	args = append(args, "0:0")
 	args = append(args, "--volume")
-	args = append(args, fmt.Sprintf("%s:/home/%s/%s:U", wd, c.system.User(), defaultPod.Container.Mount))
+	args = append(args, fmt.Sprintf("%s:/home/%s/%s:U", mountDir, c.system.User(), defaultPod.Container.Mount))
 	args = append(args, "--device")
 	args = append(args, "/dev/fb0")
 
@@ -386,11 +409,7 @@ func (c *container) Shell() {
 			}
 		}
 	}()
-
-	// Wait for the command to finish
-	if err := cmd.Wait(); err != nil {
-		fmt.Fprintf(os.Stderr, "Command finished with error: %v\n", err)
-	}
+	cmd.Wait()
 }
 
 func (c *container) loadContainerConfig() *Config {

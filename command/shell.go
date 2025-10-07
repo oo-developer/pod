@@ -8,7 +8,12 @@ type shellCommand struct {
 	container common.ContainerService
 }
 
-func (s *shellCommand) Execute(strings []string) error {
+func (s *shellCommand) Execute(args []string) error {
+
+	if common.HasOption("--script", args...) {
+		s.container.BuildShellScript()
+		return nil
+	}
 	s.container.Shell()
 	return nil
 }

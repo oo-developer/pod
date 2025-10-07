@@ -9,5 +9,6 @@ type ContainerService interface {
 	Stop()
 	Remove()
 	Shell()
+	BuildShellScript()
 	Status()
 }
