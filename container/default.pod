@@ -2,12 +2,12 @@
     "container": {
         "image": "ubuntu:24.04",
         "flavor": "debian",
-        "name": "pod",
+        "name": "%name%",
         "mount": "project"
     },
     "ssh": {
-        "privateKeyPath": "%privateKeyPath",
-        "authorizedKey": "%authorizedKey"
+        "privateKeyPath": "%privateKeyPath%",
+        "authorizedKey": "%authorizedKey%"
     },
     "packages": [
         "git"

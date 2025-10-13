@@ -11,4 +11,6 @@ type ContainerService interface {
 	Shell()
 	BuildShellScript()
 	Status()
+	ListPods()
+	ChangeToPodDir(name string)
 }

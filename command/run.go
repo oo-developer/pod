@@ -8,7 +8,8 @@ type runCommand struct {
 	container common.ContainerService
 }
 
-func (r runCommand) Execute(strings []string) error {
+func (r runCommand) Execute(args []string) error {
+	changeToPodWd(r.container, args...)
 	r.container.RunContainer()
 	return nil
 }

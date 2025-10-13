@@ -8,7 +8,8 @@ type removeCommand struct {
 	container common.ContainerService
 }
 
-func (r *removeCommand) Execute(strings []string) error {
+func (r *removeCommand) Execute(args []string) error {
+	changeToPodWd(r.container, args...)
 	r.container.Remove()
 	return nil
 }

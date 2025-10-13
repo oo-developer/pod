@@ -1,6 +1,11 @@
 package command
 
-import "github.com/oo-developer/pod/common"
+import (
+	"fmt"
+	"os"
+
+	"github.com/oo-developer/pod/common"
+)
 
 type recipesCommand struct {
 	system    common.SystemService
@@ -8,18 +13,11 @@ type recipesCommand struct {
 	container common.ContainerService
 }
 
-func (l *recipesCommand) Execute(strings []string) error {
-	defaultPod := l.container.GetDefaultPod()
-	if len(strings) == 0 {
-		l.config.ListRecipes(defaultPod.Container.Flavor)
-		return nil
+func (l *recipesCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		fmt.Println("[ERROR] No os flavor specified. Please use: pod recipes <os flavor> (e.g. debian)")
+		os.Exit(1)
 	}
-	switch strings[0] {
-	case "list":
-		l.config.ListRecipes(defaultPod.Container.Flavor)
-		return nil
-	case "update":
-		break
-	}
+	l.config.ListRecipes(args[0])
 	return nil
 }

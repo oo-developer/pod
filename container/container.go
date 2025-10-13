@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/oo-developer/pod/common"
@@ -16,11 +17,6 @@ import (
 
 //go:embed default.pod
 var defaultPod string
-
-type Config struct {
-	Port       int  `json:"port"`
-	FirstStart bool `json:"firstStart"`
-}
 
 func Init(config common.ConfigService, system common.SystemService) common.ContainerService {
 	return &container{
@@ -32,6 +28,27 @@ func Init(config common.ConfigService, system common.SystemService) common.Conta
 type container struct {
 	config common.ConfigService
 	system common.SystemService
+}
+
+func (c *container) ChangeToPodDir(name string) {
+	pods := c.listAllPodConfigs()
+	for _, pod := range pods {
+		if name == pod.Name {
+			err := os.Chdir(pod.Path)
+			if err != nil {
+				fmt.Printf("[ERROR] Pod '%s' not found!", name)
+				os.Exit(1)
+			}
+		}
+	}
+}
+
+func (c *container) ListPods() {
+	pods := c.listAllPodConfigs()
+	fmt.Printf("%-3s %-12s %7s %-40s %-30s\n", "Nr", "NAME", "SSH", "ID", "PATH")
+	for ii, pod := range pods {
+		fmt.Printf("%-3d %-12s %7d %-40s %30s\n", ii, pod.Name, pod.Port, pod.Id, pod.Path)
+	}
 }
 
 func (c *container) BuildShellScript() {
@@ -105,6 +122,7 @@ func (c *container) BuildDockerFile() {
 	c.system.CheckOrCreatePath(c.config.PodPath(wd))
 	c.prepareDockerfileBuild(c.config.PodPath(wd), podDefinition)
 	defer c.cleanupDockerfileBuild(c.config.PodPath(wd), podDefinition)
+	c.system.Execute("docker", "pull", podDefinition.Container.Image)
 	var docker string
 	switch podDefinition.Container.Flavor {
 	case "debian":
@@ -137,7 +155,6 @@ func (c *container) buildImage() {
 		fmt.Printf("[ERROR] %v\n", err)
 		os.Exit(1)
 	}
-	//c.system.Execute("podman", "build", "-t", imageName, ".")
 	c.system.Execute("podman", "build", "-t", imageName, ".")
 	fmt.Printf("[OK] Podman image '%s' built\n", imageName)
 }
@@ -232,8 +249,9 @@ func (c *container) WriteDefaultPod() {
 		fmt.Printf("[ERROR] Pod file '%s' already exists\n", fileName)
 		os.Exit(1)
 	}
-	data := strings.Replace(defaultPod, "%authorizedKey", c.config.AuthorizedKey(), 1)
-	data = strings.Replace(data, "%privateKeyPath", path.Join(c.system.HomeDir(), ".ssh"), 1)
+	data := strings.Replace(defaultPod, "%authorizedKey%", c.config.AuthorizedKey(), 1)
+	data = strings.Replace(data, "%privateKeyPath%", path.Join(c.system.HomeDir(), ".ssh"), 1)
+	data = strings.Replace(data, "%name%", path.Base(wd), 1)
 	err := os.WriteFile(fileName, []byte(data), 0640)
 	if err != nil {
 		fmt.Printf("[ERROR] %v\n", err)
@@ -247,7 +265,7 @@ func (c *container) GetDefaultPod() *common.PodDefinition {
 	fileName := path.Join(wd, "/default.pod")
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		fmt.Printf("[ERROR] %v\n", err)
+		fmt.Println("[ERROR] You are not in a pod directory. Please use: pod <command> <pod-name>")
 		os.Exit(1)
 	}
 	podDef := &common.PodDefinition{}
@@ -415,10 +433,16 @@ func (c *container) Shell() {
 func (c *container) loadContainerConfig() *Config {
 	config := &Config{}
 	wd, _ := os.Getwd()
+	defaultPod := c.GetDefaultPod()
 	podPath := c.config.PodPath(wd)
 	configFile := path.Join(podPath, "config.json")
 	if !c.system.PathExists(configFile) {
+		config.Id = c.config.PodImageName(wd)
 		config.Port = c.system.FreePort()
+		config.Name = defaultPod.Container.Name
+		config.Path = wd
+		config.BaseImage = defaultPod.Container.Image
+		config.Flavor = defaultPod.Container.Flavor
 		config.FirstStart = false
 		c.saveContainerConfig(config)
 		return config
@@ -473,4 +497,32 @@ func (c *container) getRecipe(recipeName, user, flavor string) (string, bool) {
 	}
 	//fmt.Printf("[WARNING] Recipe '%s' not found\n", recipeName)
 	return "", false
+}
+
+func (c *container) listAllPodConfigs() []*Config {
+	var list []*Config
+	entries, err := os.ReadDir(c.config.PodsPath())
+	if err != nil {
+		fmt.Printf("[ERROR] %v\n", err)
+	}
+	for _, entry := range entries {
+		configFileName := path.Join(c.config.PodsPath(), entry.Name(), "config.json")
+		if !c.system.PathExists(configFileName) {
+			continue
+		}
+		data, err := os.ReadFile(configFileName)
+		if err != nil {
+			fmt.Printf("[ERROR] %v\n", err)
+		}
+		config := &Config{}
+		err = json.Unmarshal(data, config)
+		if err != nil {
+			fmt.Printf("[ERROR] %v\n", err)
+		}
+		list = append(list, config)
+	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Name < list[j].Name
+	})
+	return list
 }

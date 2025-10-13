@@ -2,14 +2,13 @@ package command
 
 import "github.com/oo-developer/pod/common"
 
-type stopCommand struct {
+type listCommand struct {
 	system    common.SystemService
 	config    common.ConfigService
 	container common.ContainerService
 }
 
-func (s *stopCommand) Execute(args []string) error {
-	changeToPodWd(s.container, args...)
-	s.container.Stop()
+func (l listCommand) Execute(strings []string) error {
+	l.container.ListPods()
 	return nil
 }

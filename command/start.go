@@ -8,7 +8,8 @@ type startCommand struct {
 	container common.ContainerService
 }
 
-func (s *startCommand) Execute(strings []string) error {
+func (s *startCommand) Execute(args []string) error {
+	changeToPodWd(s.container, args...)
 	s.container.Start()
 	return nil
 }

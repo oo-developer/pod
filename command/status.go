@@ -8,7 +8,8 @@ type statusCommand struct {
 	container common.ContainerService
 }
 
-func (s *statusCommand) Execute(strings []string) error {
+func (s *statusCommand) Execute(args []string) error {
+	changeToPodWd(s.container, args...)
 	s.container.Status()
 	return nil
 }

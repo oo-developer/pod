@@ -9,7 +9,7 @@ type shellCommand struct {
 }
 
 func (s *shellCommand) Execute(args []string) error {
-
+	changeToPodWd(s.container, args...)
 	if common.HasOption("--script", args...) {
 		s.container.BuildShellScript()
 		return nil

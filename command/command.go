@@ -1,6 +1,10 @@
 package command
 
-import "github.com/oo-developer/pod/common"
+import (
+	"strings"
+
+	"github.com/oo-developer/pod/common"
+)
 
 type commands struct {
 	commands  map[string]common.CommandService
@@ -61,10 +65,40 @@ func Init(system common.SystemService, config common.ConfigService, container co
 		config:    config,
 		container: container,
 	}
+	c.commands["list"] = &listCommand{
+		system:    system,
+		config:    config,
+		container: container,
+	}
 	return c
 }
 
 func (c *commands) Get(name string) (common.CommandService, bool) {
 	command, ok := c.commands[name]
 	return command, ok
+}
+
+func hasPodName(args ...string) bool {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			return true
+		}
+	}
+	return false
+}
+
+func getPodName(args ...string) string {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			return arg
+		}
+	}
+	return ""
+}
+
+func changeToPodWd(container common.ContainerService, args ...string) {
+	if hasPodName(args...) {
+		name := getPodName(args...)
+		container.ChangeToPodDir(name)
+	}
 }
